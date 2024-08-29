@@ -1,28 +1,19 @@
-#include <stdio.h>
-// #include "nru/nru.h"
-// #include "lru/lru.h"
-// #include "segunda_chance/segunda_chance.h"
-#include "page_table/page_table.h"
+#include "nru/nru.h"
+#include "lru/lru.h"
+#include "segunda_chance/segunda_chance.h"
+#include "hash/hash.h"
 #include "utils/utils.h"
 
 int main(int argc, char* argv[]){
 
-    Entry *page_table;
     FILE *logFile;
     int alg, page_size, total_memory;
     read_args(argv, &alg, &page_size, &total_memory);
-    int num_pages = total_memory/page_size;
-
-    // Inicializa a tabela de páginas invertida
-    page_table = (Entry*)malloc(num_pages * sizeof(Entry));
+    unsigned num_pages = total_memory/page_size;
+    Node **page_table = (Node**)malloc(num_pages * sizeof(Node*));
     for (int i = 0; i < num_pages; i++) {
-        page_table[i].valid = 0; // Marca todos os quadros como inválidos inicialmente
-        page_table[i].r = 0;
-        page_table[i].m = 0;
-        page_table[i].page_number = i;
+        page_table[i] = NULL;
     }
-
-    
 
     // Abre o arquivo de log passado como argumento
     logFile = fopen(argv[2], "r");
@@ -40,67 +31,96 @@ int main(int argc, char* argv[]){
         s++;
     }
 
-    ll find = 0, miss = 0;
+    ll hit = 0, miss = 0;
     unsigned addr;
     char rw;
-    int i = 0;
-    // inicialize_memory(total_memory, page_size);
-    while(fscanf(logFile,"%x %c",&addr,&rw) != EOF) {
-        unsigned page = addr >> s;
-        
-        i++;
+    int free = num_pages;
+    int count = 0;
+
+    if(alg == 1){
+        while(fscanf(logFile,"%x %c",&addr,&rw) != EOF) {
+            int page = addr >> s;
+            Node* temp = search(page_table, page, num_pages);
+            if(temp == NULL){
+                miss++;
+                if(free == 0){                
+                    unsigned rm = lru(page_table, num_pages);
+                    delete(page_table, rm, num_pages);
+                    free++;
+                }
+                insert(page_table, page, num_pages, count);
+                free--;
+            }else{
+                hit++;
+            }
+        }
+    }else if(alg == 2){
+        while(fscanf(logFile,"%x %c",&addr,&rw) != EOF) {
+            int page = addr >> s;
+            Node* temp = search(page_table, page, num_pages); 
+            if(count>1 && count % 900 == 0){
+                routine(page_table, num_pages);
+            }
+            if(temp == NULL){
+                miss++;            
+                if(free == 0){                
+                    unsigned rm = nru(page_table, num_pages);
+                    delete(page_table, rm, num_pages);
+                    free++;
+                }
+                insert(page_table, page, num_pages, count);
+                if(rw == 'W'){
+                    Node* temp = search(page_table, page, num_pages);
+                    temp->value.m = 1;
+                }
+                free--;
+            }else{
+                hit++;
+            }
+            count++;
+        }
+    }else if(alg == 3){
+        Node* page_list = (Node*)malloc(sizeof(Node));
+        page_list->next = NULL;
+        while(fscanf(logFile,"%x %c",&addr,&rw) != EOF) {
+            int page = addr >> s;
+            Node* temp = search(page_table, page, num_pages);
+            
+            if(temp == NULL){
+                miss++;            
+                if(free == num_pages){
+                    page_list->value.r = 1;
+                    page_list->value.m = 0;
+                    page_list->value.valid = 1;
+                    page_list->value.virtual_page_number = page;
+                    page_list->next = page_list;
+                }else if(free == 0){                
+                    unsigned rm = second_chance(page_list, page, num_pages);
+                    delete(page_table, rm, num_pages);
+                    free++;
+                }else{
+                    Node* atual = page_list;
+                    for(int i = 0; i < (num_pages-free)-1; i++){
+                        atual = atual->next;
+                    }
+                    Node* temp = atual->next;
+                    atual->next = create_node(page, count);
+                    atual->next->next = temp;
+                }
+                insert(page_table, page, num_pages, count);
+                if(rw == 'W'){        
+                    Node* temp = search(page_table, page, num_pages);
+                    temp->value.m = 1;
+                }
+                free--;
+            }else{
+                hit++;
+            }
+            count++;
+        }
     }
-    // search_page(1, table, num_pages);
-        // ################### nru ###########################
+    printf("hit: %lld   miss: %lld   free: %d\n", hit, miss, free);
+    fclose(logFile);
 
-
-    //     // ################### lru ###########################
-
-    // //     unsigned page_number = addr / page_size;
-
-    // //     struct LruPage *page = lru_find_page(page_number);
-    // //     if (page != NULL) {
-    // //         // Página já está na memória, mover para o final (mais recentemente usada)
-    // //         lru_move_to_tail(page);
-    // //         find++;
-    // //     } else {
-    // //         miss++;
-    // //         // Página não está na memória, adicionar nova
-    // //         if (is_memory_full()) {
-    // //             // Remover a página menos recentemente usada (cabeça)
-    // //             lru_remove_page(head);
-    // //         }
-    // //         struct LruPage *new_page = lru_create_new_page(page_number);
-    // //         lru_add_page_to_tail(new_page);
-    // //     }
-
-    //     // ################### second chance ###########################
-    //     // // printf("Acessando a página %u para %c...\n", addr, rw);
-    //     // // Verifica se a página já está na tabela de páginas
-    //     // int page_index = sc_find_page(page_table, addr, num_pages);
-    //     // if (page_index != -1) {
-    //     //     // Página encontrada na tabela
-    //     //     // printf("Página %d já está na memória.\n", addr);
-    //     //     find++;
-    //     //     page_table[page_index].referenced = 1;  // Página foi acessada
-    //     // } else {
-    //     //     // Página não está na tabela de páginas
-    //     //     // printf("Página %d não está na memória. Substituindo...\n", addr);
-    //     //     miss++;
-    //     //     second_chance(page_table, addr, num_pages);
-    //     // }
-
-    //     // // Opcional: Mostrar o estado da tabela de páginas
-    //     // printf("Estado atual da tabela de páginas:\n");
-    //     // for (int j = 0; j < num_pages; j++) {
-    //     //     // printf("Frame %d: Página %d, Referenced: %d, Valid: %d\n", j,
-    //     //            page_table[j].page_number, page_table[j].referenced, page_table[j].valid;
-    //     // }
-    // // }
-    // // printf("Find: %lld; Miss: %lld\n", find, miss);
-    // // destroy_memory();
-
-    // fclose(logFile);
-
-    // return 0;
+    return 0;
 }

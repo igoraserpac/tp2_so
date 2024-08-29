@@ -1,5 +1,5 @@
-all: main.o lru.o nru.o segunda_chance.o utils.o
-	gcc lru.o nru.o segunda_chance.o utils.o main.o -o tp2virtual
+all: hash.o main.o lru.o nru.o segunda_chance.o utils.o
+	gcc hash.o lru.o nru.o segunda_chance.o utils.o main.o -o tp2virtual
 	rm *.o
 
 main.o: main.c 
@@ -17,5 +17,5 @@ segunda_chance.o: segunda_chance/segunda_chance.c
 utils.o: utils/utils.c 
 	gcc -c utils/utils.c 
 
-rm:
-	rm *.o
+hash.o: hash/hash.c 
+	gcc -c hash/hash.c 
