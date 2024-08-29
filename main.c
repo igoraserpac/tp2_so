@@ -30,15 +30,18 @@ int main(int argc, char* argv[]){
         tmp = tmp>>1;
         s++;
     }
-
-    ll hit = 0, miss = 0;
+    
+    ll hit = 0, miss = 0, read = 0, write = 0;
     unsigned addr;
     char rw;
     int free = num_pages;
     int count = 0;
+    printf("Executando o simulador... \n");
 
     if(alg == 1){
         while(fscanf(logFile,"%x %c",&addr,&rw) != EOF) {
+            if(rw == 'W') write++;
+            else if(rw == 'R') read++;
             int page = addr >> s;
             Node* temp = search(page_table, page, num_pages);
             if(temp == NULL){
@@ -56,6 +59,8 @@ int main(int argc, char* argv[]){
         }
     }else if(alg == 2){
         while(fscanf(logFile,"%x %c",&addr,&rw) != EOF) {
+            if(rw == 'W') write++;
+            else if(rw == 'R') read++;
             int page = addr >> s;
             Node* temp = search(page_table, page, num_pages); 
             if(count>1 && count % 900 == 0){
@@ -83,6 +88,8 @@ int main(int argc, char* argv[]){
         Node* page_list = (Node*)malloc(sizeof(Node));
         page_list->next = NULL;
         while(fscanf(logFile,"%x %c",&addr,&rw) != EOF) {
+            if(rw == 'W') write++;
+            else if(rw == 'R') read++;
             int page = addr >> s;
             Node* temp = search(page_table, page, num_pages);
             
@@ -119,7 +126,24 @@ int main(int argc, char* argv[]){
             count++;
         }
     }
-    printf("hit: %lld   miss: %lld   free: %d\n", hit, miss, free);
+    printf(
+        "Arquivo de entrada: %s \n"
+        "Tamanho da memoria: %u KB \n"
+        "Tamanho das paginas: %u KB \n"
+        "Tecnica de reposicao: %s \n"
+        "Paginas lidas: %lld \n"
+        "Paginas escritas: %lld \n"
+        "Cache misses: %lld \n"
+        "Cache hits: %lld\n", 
+        argv[2], 
+        total_memory/1024, 
+        page_size/1024, 
+        argv[1], 
+        read, 
+        write, 
+        miss, 
+        hit
+    );
     fclose(logFile);
 
     return 0;
