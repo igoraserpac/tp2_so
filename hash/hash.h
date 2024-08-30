@@ -27,10 +27,10 @@ unsigned hash(unsigned virtual_page_number, unsigned num_pages);
 // Função para criar um novo nó
 Node* create_node(unsigned virtual_page_number, long long count);
 
-// Função para inserir um par chave-valor na tabela hash
+// Função para inserir um valor na tabela hash
 void insert(Node* hash_table[], unsigned virtual_page_number, unsigned TABLE_SIZE, long long count);
 
-// Função para buscar um valor pela chave
+// Função para buscar um valor na tabela hash
 Node* search(Node* hash_table[], unsigned virtual_page_number, unsigned TABLE_SIZE);
 
 // Função para remover uma página pelo numero de página virtual

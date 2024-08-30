@@ -68,4 +68,5 @@ void free_table(Node* hash_table[], unsigned TABLE_SIZE) {
             free(temp);
         }
     }
+    free(hash_table);
 }

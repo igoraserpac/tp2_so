@@ -4,6 +4,7 @@
 #include "hash/hash.h"
 #include "utils/utils.h"
 
+
 int main(int argc, char* argv[]){
 
     FILE *logFile;
@@ -26,15 +27,15 @@ int main(int argc, char* argv[]){
     /* Derivar o valor de s: */
     tmp = (unsigned)page_size;
     s = 0;
-    while (tmp>1) {
-        tmp = tmp>>1;
+    while(tmp>1) {
+        tmp = tmp >> 1;
         s++;
     }
     
     ll hit = 0, miss = 0, read = 0, write = 0;
     unsigned addr;
     char rw;
-    int free = num_pages;
+    int free_pages = num_pages;
     int count = 0;
     printf("Executando o simulador... \n");
 
@@ -46,13 +47,13 @@ int main(int argc, char* argv[]){
             Node* temp = search(page_table, page, num_pages);
             if(temp == NULL){
                 miss++;
-                if(free == 0){                
+                if(free_pages == 0){                
                     unsigned rm = lru(page_table, num_pages);
                     delete(page_table, rm, num_pages);
-                    free++;
+                    free_pages++;
                 }
                 insert(page_table, page, num_pages, count);
-                free--;
+                free_pages--;
             }else{
                 hit++;
             }
@@ -62,23 +63,23 @@ int main(int argc, char* argv[]){
             if(rw == 'W') write++;
             else if(rw == 'R') read++;
             int page = addr >> s;
-            Node* temp = search(page_table, page, num_pages); 
-            if(count>1 && count % 900 == 0){
+            Node* temp = search(page_table, page, num_pages);
+            if(count>1 && count % 1000 == 0){
                 routine(page_table, num_pages);
             }
             if(temp == NULL){
                 miss++;            
-                if(free == 0){                
+                if(free_pages == 0){                
                     unsigned rm = nru(page_table, num_pages);
                     delete(page_table, rm, num_pages);
-                    free++;
+                    free_pages++;
                 }
                 insert(page_table, page, num_pages, count);
                 if(rw == 'W'){
                     Node* temp = search(page_table, page, num_pages);
                     temp->value.m = 1;
                 }
-                free--;
+                free_pages--;
             }else{
                 hit++;
             }
@@ -95,19 +96,19 @@ int main(int argc, char* argv[]){
             
             if(temp == NULL){
                 miss++;            
-                if(free == num_pages){
+                if(free_pages == num_pages){
                     page_list->value.r = 1;
                     page_list->value.m = 0;
                     page_list->value.valid = 1;
                     page_list->value.virtual_page_number = page;
                     page_list->next = page_list;
-                }else if(free == 0){                
+                }else if(free_pages == 0){                
                     unsigned rm = second_chance(page_list, page, num_pages);
                     delete(page_table, rm, num_pages);
-                    free++;
+                    free_pages++;
                 }else{
                     Node* atual = page_list;
-                    for(int i = 0; i < (num_pages-free)-1; i++){
+                    for(int i = 0; i < (num_pages-free_pages)-1; i++){
                         atual = atual->next;
                     }
                     Node* temp = atual->next;
@@ -119,11 +120,17 @@ int main(int argc, char* argv[]){
                     Node* temp = search(page_table, page, num_pages);
                     temp->value.m = 1;
                 }
-                free--;
+                free_pages--;
             }else{
                 hit++;
             }
             count++;
+        }
+        Node* atual = page_list;
+        for(int i = 0; i < (num_pages-free_pages); i++){
+            Node* temp = atual;
+            atual = atual->next;
+            free(temp);
         }
     }
     printf(
@@ -144,6 +151,7 @@ int main(int argc, char* argv[]){
         miss, 
         hit
     );
+    free_table(page_table, num_pages);
     fclose(logFile);
 
     return 0;
