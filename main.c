@@ -140,8 +140,8 @@ int main(int argc, char* argv[]){
         "Tecnica de reposicao: %s \n"
         "Paginas lidas: %lld \n"
         "Paginas escritas: %lld \n"
-        "Cache misses: %lld \n"
-        "Cache hits: %lld\n", 
+        "Page misses: %lld \n"
+        "Page hits: %lld\n", 
         argv[2], 
         total_memory/1024, 
         page_size/1024, 
